@@ -17,7 +17,7 @@ import (
 	"net"
 	"sort"
 	"strconv"
-    "crypto/tls"
+	"crypto/tls"
 	"strings"
 	"time"
 )
@@ -190,15 +190,15 @@ func maybeId(cmd, id string) string {
 	return cmd
 }
 
-func newConn(c net.Conn) (res *Conn, err os.Error){
+func newConn(c net.Conn) (res *Conn, err os.Error) {
 	res = &Conn{conn: c}
 
 	if res.r, err = bufio.NewReaderSize(c, 4096); err != nil {
-		return 
+		return
 	}
 
 	if _, err = res.r.ReadString('\n'); err != nil {
-		return 
+		return
 	}
 
 	return
@@ -216,32 +216,32 @@ func Dial(network, addr string) (*Conn, os.Error) {
 	if err != nil {
 		return nil, err
 	}
-    return newConn(c)
+	return newConn(c)
 }
 
 // Same as Dial but handles TLS connections
 func DialTLS(network, addr string, config *tls.Config) (*Conn, os.Error) {
-    // dial
+	// dial
 	c, err := net.Dial(network, addr)
 	if err != nil {
 		return nil, err
 	}
-    // handshake TLS
-    c = tls.Client(c, nil)
-    if err = c.(*tls.Conn).Handshake(); err != nil {
-        return nil, err
-    }
-    // should we check cert
-    if config == nil || !config.InsecureSkipVerify {
-        // get host name
-        host := strings.SplitN(addr, ":", 2)
-        // check valid cert for host
-        if err = c.(*tls.Conn).VerifyHostname(host[0]); err != nil {
-            return nil, err
-        }
-    }
-    // return nntp Conn
-    return newConn(c)
+	// handshake TLS
+	c = tls.Client(c, nil)
+	if err = c.(*tls.Conn).Handshake(); err != nil {
+		return nil, err
+	}
+	// should we check cert
+	if config == nil || !config.InsecureSkipVerify {
+		// get host name
+		host := strings.SplitN(addr, ":", 2)
+		// check valid cert for host
+		if err = c.(*tls.Conn).VerifyHostname(host[0]); err != nil {
+			return nil, err
+		}
+	}
+	// return nntp Conn
+	return newConn(c)
 }
 
 func (c *Conn) body() io.Reader {
@@ -267,7 +267,7 @@ func (c *Conn) readStrings() ([]string, os.Error) {
 		if line == "." {
 			break
 		}
-        sv = append(sv, line)
+		sv = append(sv, line)
 	}
 	return []string(sv), nil
 }
@@ -385,7 +385,7 @@ func parseGroups(lines []string) ([]*Group, os.Error) {
 		if err != nil {
 			return nil, ProtocolError("bad number in line: " + line)
 		}
-        res = append(res, &Group{ss[0], high, low, ss[3]})
+		res = append(res, &Group{ss[0], high, low, ss[3]})
 	}
 	return res, nil
 }
@@ -719,9 +719,9 @@ func (c *Conn) readHeader(r *bufio.Reader) (res *Article, err os.Error) {
 		// a single key joined with commas, so we keep all values seperate.
 		oldvalue, present := res.Header[key]
 		if present {
-            sv := make([]string, 0) 
-            sv = append(sv, oldvalue...)
-            sv = append(sv, value)
+			sv := make([]string, 0)
+			sv = append(sv, oldvalue...)
+			sv = append(sv, value)
 			res.Header[key] = sv
 		} else {
 			res.Header[key] = []string{value}
