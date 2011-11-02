@@ -9,7 +9,6 @@ package nntp
 import (
 	"bufio"
 	"bytes"
-	"container/vector"
 	"fmt"
 	"http"
 	"io"
@@ -226,7 +225,7 @@ func (c *Conn) body() io.Reader {
 // stopping at a line containing only a . (Convenience method for
 // LIST, etc.)
 func (c *Conn) readStrings() ([]string, os.Error) {
-	var sv vector.StringVector
+	var sv []string
 	for {
 		line, err := c.r.ReadString('\n')
 		if err != nil {
@@ -240,7 +239,7 @@ func (c *Conn) readStrings() ([]string, os.Error) {
 		if line == "." {
 			break
 		}
-		sv.Push(line)
+        sv = append(sv, line)
 	}
 	return []string(sv), nil
 }
@@ -302,14 +301,14 @@ func (c *Conn) ModeReader() os.Error {
 }
 
 // NewGroups returns a list of groups added since the given time.
-func (c *Conn) NewGroups(since *time.Time) ([]Group, os.Error) {
+func (c *Conn) NewGroups(since *time.Time) ([]*Group, os.Error) {
 	if _, _, err := c.cmd(231, "NEWGROUPS %s GMT", since.Format(timeFormatNew)); err != nil {
 		return nil, err
 	}
 	return c.readGroups()
 }
 
-func (c *Conn) readGroups() ([]Group, os.Error) {
+func (c *Conn) readGroups() ([]*Group, os.Error) {
 	lines, err := c.readStrings()
 	if err != nil {
 		return nil, err
@@ -343,8 +342,8 @@ func (c *Conn) NewNews(group string, since *time.Time) ([]string, os.Error) {
 }
 
 // parseGroups is used to parse a list of group states.
-func parseGroups(lines []string) ([]Group, os.Error) {
-	var res vector.Vector
+func parseGroups(lines []string) ([]*Group, os.Error) {
+	res := make([]*Group, 0)
 	for _, line := range lines {
 		ss := strings.SplitN(strings.TrimSpace(line), " ", 4)
 		if len(ss) < 4 {
@@ -358,13 +357,9 @@ func parseGroups(lines []string) ([]Group, os.Error) {
 		if err != nil {
 			return nil, ProtocolError("bad number in line: " + line)
 		}
-		res.Push(&Group{ss[0], high, low, ss[3]})
+        res = append(res, &Group{ss[0], high, low, ss[3]})
 	}
-	realres := make([]Group, res.Len())
-	for i, v := range res {
-		realres[i] = *v.(*Group)
-	}
-	return realres, nil
+	return res, nil
 }
 
 // Capabilities returns a list of features this server performs.
@@ -429,8 +424,8 @@ func (c *Conn) Group(group string) (number, low, high int, err os.Error) {
 
 	var n [3]int
 	for i, _ := range n {
-		c, err := strconv.Atoi(ss[i])
-		if err != nil {
+		c, e := strconv.Atoi(ss[i])
+		if e != nil {
 			err = ProtocolError("bad group response: " + line)
 			return
 		}
@@ -696,9 +691,10 @@ func (c *Conn) readHeader(r *bufio.Reader) (res *Article, err os.Error) {
 		// a single key joined with commas, so we keep all values seperate.
 		oldvalue, present := res.Header[key]
 		if present {
-			sv := vector.StringVector(oldvalue)
-			sv.Push(value)
-			res.Header[key] = []string(sv)
+            sv := make([]string, 0) 
+            sv = append(sv, oldvalue...)
+            sv = append(sv, value)
+			res.Header[key] = sv
 		} else {
 			res.Header[key] = []string{value}
 		}
