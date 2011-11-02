@@ -30,7 +30,7 @@ func (f faker) Close() os.Error {
 	return nil
 }
 
-func TestBasic(t *testing.T) {
+func TestBasics(t *testing.T) {
 	basicServer = strings.Join(strings.Split(basicServer, "\n"), "\r\n")
 	basicClient = strings.Join(strings.Split(basicClient, "\n"), "\r\n")
 

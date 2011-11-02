@@ -17,6 +17,7 @@ import (
 	"net"
 	"sort"
 	"strconv"
+    "crypto/tls"
 	"strings"
 	"time"
 )
@@ -189,6 +190,20 @@ func maybeId(cmd, id string) string {
 	return cmd
 }
 
+func newConn(c net.Conn) (res *Conn, err os.Error){
+	res = &Conn{conn: c}
+
+	if res.r, err = bufio.NewReaderSize(c, 4096); err != nil {
+		return 
+	}
+
+	if _, err = res.r.ReadString('\n'); err != nil {
+		return 
+	}
+
+	return
+}
+
 // Dial connects to an NNTP server.
 // The network and addr are passed to net.Dial to
 // make the connection.
@@ -197,23 +212,36 @@ func maybeId(cmd, id string) string {
 //   conn, err := nntp.Dial("tcp", "my.news:nntp")
 //
 func Dial(network, addr string) (*Conn, os.Error) {
-	res := new(Conn)
 	c, err := net.Dial(network, addr)
 	if err != nil {
 		return nil, err
 	}
+    return newConn(c)
+}
 
-	res.conn = c
-	if res.r, err = bufio.NewReaderSize(c, 4096); err != nil {
-		return nil, err
-	}
-
-	_, err = res.r.ReadString('\n')
+// Same as Dial but handles TLS connections
+func DialTLS(network, addr string, config *tls.Config) (*Conn, os.Error) {
+    // dial
+	c, err := net.Dial(network, addr)
 	if err != nil {
 		return nil, err
 	}
-
-	return res, nil
+    // handshake TLS
+    c = tls.Client(c, nil)
+    if err = c.(*tls.Conn).Handshake(); err != nil {
+        return nil, err
+    }
+    // should we check cert
+    if config == nil || !config.InsecureSkipVerify {
+        // get host name
+        host := strings.SplitN(addr, ":", 2)
+        // check valid cert for host
+        if err = c.(*tls.Conn).VerifyHostname(host[0]); err != nil {
+            return nil, err
+        }
+    }
+    // return nntp Conn
+    return newConn(c)
 }
 
 func (c *Conn) body() io.Reader {
