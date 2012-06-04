@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -26,7 +25,7 @@ type faker struct {
 	io.Writer
 }
 
-func (f faker) Close() os.Error {
+func (f faker) Close() error {
 	return nil
 }
 
@@ -42,12 +41,12 @@ func TestBasics(t *testing.T) {
 
 	// Test some global commands that don't take arguments
 	if _, err := conn.Capabilities(); err != nil {
-		t.Fatal("should be able to request CAPABILITIES after connecting: " + err.String())
+		t.Fatal("should be able to request CAPABILITIES after connecting: " + err.Error())
 	}
 
 	_, err := conn.Date()
 	if err != nil {
-		t.Fatal("should be able to send DATE: " + err.String())
+		t.Fatal("should be able to send DATE: " + err.Error())
 	}
 
 	/*
@@ -60,39 +59,36 @@ func TestBasics(t *testing.T) {
 
 	// Test LIST (implicit ACTIVE)
 	if _, err = conn.List(); err != nil {
-		t.Fatal("LIST should work: " + err.String())
+		t.Fatal("LIST should work: " + err.Error())
 	}
 
-	tt := new(time.Time)
-	tt.Year = 2010
-	tt.Month = 3
-	tt.Day = 1
+	tt := time.Date(2010, 3, 1, 0, 0, 0, 0, time.UTC)
 
 	const grp = "gmane.comp.lang.go.general"
 	_, l, h, err := conn.Group(grp)
 	if err != nil {
-		t.Fatal("Group shouldn't error: " + err.String())
+		t.Fatal("Group shouldn't error: " + err.Error())
 	}
 
 	// test STAT, NEXT, and LAST
 	if _, _, err = conn.Stat(""); err != nil {
-		t.Fatal("should be able to STAT after selecting a group: " + err.String())
+		t.Fatal("should be able to STAT after selecting a group: " + err.Error())
 	}
 	if _, _, err = conn.Next(); err != nil {
-		t.Fatal("should be able to NEXT after selecting a group: " + err.String())
+		t.Fatal("should be able to NEXT after selecting a group: " + err.Error())
 	}
 	if _, _, err = conn.Last(); err != nil {
-		t.Fatal("should be able to LAST after a NEXT selecting a group: " + err.String())
+		t.Fatal("should be able to LAST after a NEXT selecting a group: " + err.Error())
 	}
 
 	// Can we grab articles?
 	a, err := conn.Article(fmt.Sprintf("%d", l))
 	if err != nil {
-		t.Fatal("should be able to fetch the low article: " + err.String())
+		t.Fatal("should be able to fetch the low article: " + err.Error())
 	}
 	body, err := ioutil.ReadAll(a.Body)
 	if err != nil {
-		t.Fatal("error reading reader: " + err.String())
+		t.Fatal("error reading reader: " + err.Error())
 	}
 
 	// Test that the article body doesn't get mangled.
@@ -111,12 +107,12 @@ Body.
 `
 	a, err = conn.Article(fmt.Sprintf("%d", l+1))
 	if err != nil {
-		t.Fatal("shouldn't error reading article low+1: " + err.String())
+		t.Fatal("shouldn't error reading article low+1: " + err.Error())
 	}
 	var abuf bytes.Buffer
 	_, err = a.WriteTo(&abuf)
 	if err != nil {
-		t.Fatal("shouldn't error writing out article: " + err.String())
+		t.Fatal("shouldn't error writing out article: " + err.Error())
 	}
 	actualart := abuf.String()
 	if actualart != expectedart {
@@ -125,12 +121,12 @@ Body.
 
 	// Just headers?
 	if _, err = conn.Head(fmt.Sprintf("%d", h)); err != nil {
-		t.Fatal("should be able to fetch the high article: " + err.String())
+		t.Fatal("should be able to fetch the high article: " + err.Error())
 	}
 
 	// Without an id?
 	if _, err = conn.Head(""); err != nil {
-		t.Fatal("should be able to fetch the selected article without specifying an id: " + err.String())
+		t.Fatal("should be able to fetch the selected article without specifying an id: " + err.Error())
 	}
 
 	// How about bad articles? Do they error?
@@ -144,23 +140,23 @@ Body.
 	// Just the body?
 	r, err := conn.Body(fmt.Sprintf("%d", l))
 	if err != nil {
-		t.Fatal("should be able to fetch the low article body" + err.String())
+		t.Fatal("should be able to fetch the low article body" + err.Error())
 	}
 	if _, err = ioutil.ReadAll(r); err != nil {
-		t.Fatal("error reading reader: " + err.String())
+		t.Fatal("error reading reader: " + err.Error())
 	}
 
 	if _, err = conn.NewNews(grp, tt); err != nil {
-		t.Fatal("newnews should work: " + err.String())
+		t.Fatal("newnews should work: " + err.Error())
 	}
 
 	// NewGroups
 	if _, err = conn.NewGroups(tt); err != nil {
-		t.Fatal("newgroups shouldn't error " + err.String())
+		t.Fatal("newgroups shouldn't error " + err.Error())
 	}
 
 	if err = conn.Quit(); err != nil {
-		t.Fatal("Quit shouldn't error: " + err.String())
+		t.Fatal("Quit shouldn't error: " + err.Error())
 	}
 
 	actualcmds := cmdbuf.String()
