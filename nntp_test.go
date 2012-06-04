@@ -62,10 +62,7 @@ func TestBasics(t *testing.T) {
 		t.Fatal("LIST should work: " + err.Error())
 	}
 
-	tt := new(time.Time)
-	tt.Year = 2010
-	tt.Month = 3
-	tt.Day = 1
+	tt := time.Date(2010, 3, 1, 0, 0, 0, 0, time.UTC)
 
 	const grp = "gmane.comp.lang.go.general"
 	_, l, h, err := conn.Group(grp)

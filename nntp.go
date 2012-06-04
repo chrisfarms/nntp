@@ -192,9 +192,7 @@ func maybeId(cmd, id string) string {
 func newConn(c net.Conn) (res *Conn, err error) {
 	res = &Conn{conn: c}
 
-	if res.r, err = bufio.NewReaderSize(c, 4096); err != nil {
-		return
-	}
+	res.r = bufio.NewReaderSize(c, 4096)
 
 	if _, err = res.r.ReadString('\n'); err != nil {
 		return
@@ -307,7 +305,8 @@ func (c *Conn) cmd(expectCode uint, format string, args ...interface{}) (code ui
 	if len(line) < 4 || line[3] != ' ' {
 		return 0, "", ProtocolError("short response: " + line)
 	}
-	code, err = strconv.ParseUint(line[0:3], 10, 0)
+	code64, err := strconv.ParseUint(line[0:3], 10, 0)
+	code = uint(code64)
 	if err != nil {
 		return 0, "", ProtocolError("invalid response code: " + line)
 	}
@@ -403,11 +402,11 @@ func (c *Conn) Capabilities() ([]string, error) {
 func (c *Conn) Date() (time.Time, error) {
 	_, line, err := c.cmd(111, "DATE")
 	if err != nil {
-		return nil, err
+		return time.Time{}, err
 	}
 	t, err := time.Parse(timeFormatDate, line)
 	if err != nil {
-		return nil, ProtocolError("invalid time: " + line)
+		return time.Time{}, ProtocolError("invalid time: " + line)
 	}
 	return t, nil
 }
