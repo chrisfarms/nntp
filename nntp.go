@@ -368,6 +368,65 @@ func (c *Conn) NewNews(group string, since time.Time) ([]string, error) {
 	return id, nil
 }
 
+// Overview of a message returned by OVER command.
+type MessageOverview struct {
+	MessageNumber int       // Message number in the group
+	Subject       string    // Subject header value. Empty if the header is missing.
+	From          string    // From header value. Empty is the header is missing.
+	Date          time.Time // Parsed Date header value. Zero if the header is missing or unparseable.
+	MessageId     string    // Message-Id header value. Empty is the header is missing.
+	References    []string  // Message-Id's of referenced messages (References header value, split on spaces). Empty if the header is missing.
+	Bytes         int       // Message size in bytes, called :bytes metadata item in RFC3977.
+	Lines         int       // Message size in lines, called :lines metadata item in RFC3977.
+	Extra         []string  // Any additional fields returned by the server.
+}
+
+// Overview returns overviews of all messages in the current group with message number between
+// begin and end, inclusive.
+func (c *Conn) Overview(begin, end int) ([]MessageOverview, error) {
+	if _, _, err := c.cmd(224, "OVER %d-%d", begin, end); err != nil {
+		return nil, err
+	}
+
+	lines, err := c.readStrings()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]MessageOverview, 0, len(lines))
+	for _, line := range lines {
+		overview := MessageOverview{}
+		ss := strings.SplitN(strings.TrimSpace(line), "\t", 9)
+		if len(ss) < 8 {
+			return nil, ProtocolError("short header listing line: " + line + strconv.Itoa(len(ss)))
+		}
+		overview.MessageNumber, err = strconv.Atoi(ss[0])
+		if err != nil {
+			return nil, ProtocolError("bad message number '" + ss[0] + "' in line: " + line)
+		}
+		overview.Subject = ss[1]
+		overview.From = ss[2]
+		overview.Date, err = parseDate(ss[3])
+		if err != nil {
+			// Inability to parse date is not fatal: the field in the message may be broken or missing.
+			overview.Date = time.Time{}
+		}
+		overview.MessageId = ss[4]
+		overview.References = strings.Split(ss[5], " ") // Message-Id's contain no spaces, so this is safe.
+		overview.Bytes, err = strconv.Atoi(ss[6])
+		if err != nil {
+			return nil, ProtocolError("bad byte count '" + ss[6] + "'in line:" + line)
+		}
+		overview.Lines, err = strconv.Atoi(ss[7])
+		if err != nil {
+			return nil, ProtocolError("bad line count '" + ss[7] + "'in line:" + line)
+		}
+		overview.Extra = append([]string{}, ss[8:]...)
+		result = append(result, overview)
+	}
+	return result, nil
+}
+
 // parseGroups is used to parse a list of group states.
 func parseGroups(lines []string) ([]*Group, error) {
 	res := make([]*Group, 0)
