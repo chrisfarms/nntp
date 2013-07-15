@@ -155,6 +155,26 @@ Body.
 		t.Fatal("newgroups shouldn't error " + err.Error())
 	}
 
+	// Overview
+	overviews, err := conn.Overview(10, 11)
+	if err != nil {
+		t.Fatal("overview shouldn't error: " + err.Error())
+	}
+	expectedOverviews := []MessageOverview{
+		MessageOverview{10, "Subject10", "Author <author@server>", time.Date(2003, 10, 18, 18, 0, 0, 0, time.FixedZone("", 1800)), "<d@e.f>", []string{}, 1000, 9, []string{}},
+		MessageOverview{11, "Subject11", "", time.Date(2003, 10, 18, 19, 0, 0, 0, time.FixedZone("", 1800)), "<e@f.g>", []string{"<d@e.f>", "<a@b.c>"}, 2000, 18, []string{"Extra stuff"}},
+	}
+
+	if len(overviews) != len(expectedOverviews) {
+		t.Fatalf("returned %d overviews, expected %d", len(overviews), len(expectedOverviews))
+	}
+
+	for i, o := range overviews {
+		if fmt.Sprint(o) != fmt.Sprint(expectedOverviews[i]) {
+			t.Fatalf("in place of %dth overview expected %v, got %v", i, expectedOverviews[i], o)
+		}
+	}
+
 	if err = conn.Quit(); err != nil {
 		t.Fatal("Quit shouldn't error: " + err.Error())
 	}
@@ -213,6 +233,10 @@ Fin.
 .
 231 New newsgroups follow
 .
+224 Overview information for 10-11 follows
+10	Subject10	Author <author@server>	Sat, 18 Oct 2003 18:00:00 +0030	<d@e.f>		1000	9
+11	Subject11		18 Oct 2003 19:00:00 +0030	<e@f.g>	<d@e.f> <a@b.c>	2000	18	Extra stuff
+.
 205 Bye!
 `
 
@@ -232,5 +256,6 @@ HEAD 101
 BODY 1
 NEWNEWS gmane.comp.lang.go.general 20100301 000000 GMT
 NEWGROUPS 20100301 000000 GMT
+OVER 10-11
 QUIT
 `
