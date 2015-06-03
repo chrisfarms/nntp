@@ -220,23 +220,9 @@ func Dial(network, addr string) (*Conn, error) {
 // Same as Dial but handles TLS connections
 func DialTLS(network, addr string, config *tls.Config) (*Conn, error) {
 	// dial
-	c, err := net.Dial(network, addr)
+	c, err := tls.Dial(network, addr, config)
 	if err != nil {
 		return nil, err
-	}
-	// handshake TLS
-	c = tls.Client(c, nil)
-	if err = c.(*tls.Conn).Handshake(); err != nil {
-		return nil, err
-	}
-	// should we check cert
-	if config == nil || !config.InsecureSkipVerify {
-		// get host name
-		host := strings.SplitN(addr, ":", 2)
-		// check valid cert for host
-		if err = c.(*tls.Conn).VerifyHostname(host[0]); err != nil {
-			return nil, err
-		}
 	}
 	// return nntp Conn
 	return newConn(c)
