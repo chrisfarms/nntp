@@ -668,7 +668,7 @@ func readLineBytes(b *bufio.Reader) (p []byte, err error) {
 	// Chop off trailing white space.
 	var i int
 	for i = len(p); i > 0; i-- {
-		if c := p[i-1]; c != ' ' && c != '\r' && c != '\t' && c != '\n' {
+		if c := p[i-1]; c != '\r' && c != '\t' && c != '\n' {
 			break
 		}
 	}
