@@ -464,7 +464,7 @@ func (c *Conn) Date() (time.Time, error) {
 //   List(keyword) - return different kinds of information about groups
 //   List(keyword, pattern) - filter groups against a glob-like pattern called a wildmat
 //
-func (c *Conn) List(a ...string) ([]string, error) {
+func (c *Conn) List(a ...string) ([]*Group, error) {
 	if len(a) > 2 {
 		return nil, ProtocolError("List only takes up to 2 arguments")
 	}
@@ -478,7 +478,7 @@ func (c *Conn) List(a ...string) ([]string, error) {
 	if _, _, err := c.cmd(215, cmd); err != nil {
 		return nil, err
 	}
-	return c.readStrings()
+	return c.readGroups()
 }
 
 // Group changes the current group.
