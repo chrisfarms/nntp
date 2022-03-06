@@ -370,8 +370,15 @@ type MessageOverview struct {
 // Overview returns overviews of all messages in the current group with message number between
 // begin and end, inclusive.
 func (c *Conn) Overview(begin, end int) ([]MessageOverview, error) {
-	if _, _, err := c.cmd(224, "OVER %d-%d", begin, end); err != nil {
-		return nil, err
+	if code, _, err := c.cmd(224, "OVER %d-%d", begin, end); err != nil {
+		// if error is "400 Unrecognized command" try the XOVER command
+		if code == 400 {
+			if _, _, err := c.cmd(224, "XOVER %d-%d", begin, end); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	lines, err := c.readStrings()
@@ -399,13 +406,21 @@ func (c *Conn) Overview(begin, end int) ([]MessageOverview, error) {
 		}
 		overview.MessageId = ss[4]
 		overview.References = strings.Split(ss[5], " ") // Message-Id's contain no spaces, so this is safe.
-		overview.Bytes, err = strconv.Atoi(ss[6])
-		if err != nil {
-			return nil, ProtocolError("bad byte count '" + ss[6] + "'in line:" + line)
+		if ss[6] == "" {
+			overview.Bytes = 0
+		} else {
+			overview.Bytes, err = strconv.Atoi(ss[6])
+			if err != nil {
+				return nil, ProtocolError("bad byte count '" + ss[6] + "'in line:" + line)
+			}
 		}
-		overview.Lines, err = strconv.Atoi(ss[7])
-		if err != nil {
-			return nil, ProtocolError("bad line count '" + ss[7] + "'in line:" + line)
+		if ss[7] == "" {
+			overview.Lines = 0
+		} else {
+			overview.Lines, err = strconv.Atoi(ss[7])
+			if err != nil {
+				return nil, ProtocolError("bad line count '" + ss[7] + "'in line:" + line)
+			}
 		}
 		overview.Extra = append([]string{}, ss[8:]...)
 		result = append(result, overview)
