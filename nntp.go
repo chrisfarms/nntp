@@ -407,9 +407,13 @@ func (c *Conn) Overview(begin, end int) ([]MessageOverview, error) {
 				return nil, ProtocolError("bad byte count '" + ss[6] + "'in line:" + line)
 			}
 		}
-		overview.Lines, err = strconv.Atoi(ss[7])
-		if err != nil {
-			return nil, ProtocolError("bad line count '" + ss[7] + "'in line:" + line)
+		if ss[7] == "" {
+			overview.Lines = 0
+		} else {
+			overview.Lines, err = strconv.Atoi(ss[7])
+			if err != nil {
+				return nil, ProtocolError("bad line count '" + ss[7] + "'in line:" + line)
+			}
 		}
 		overview.Extra = append([]string{}, ss[8:]...)
 		result = append(result, overview)
