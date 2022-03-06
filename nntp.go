@@ -370,8 +370,15 @@ type MessageOverview struct {
 // Overview returns overviews of all messages in the current group with message number between
 // begin and end, inclusive.
 func (c *Conn) Overview(begin, end int) ([]MessageOverview, error) {
-	if _, _, err := c.cmd(224, "OVER %d-%d", begin, end); err != nil {
-		return nil, err
+	if code, _, err := c.cmd(224, "OVER %d-%d", begin, end); err != nil {
+		// if error is "400 Unrecognized command" try the XOVER command
+		if code == 400 {
+			if _, _, err := c.cmd(224, "XOVER %d-%d", begin, end); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	lines, err := c.readStrings()
